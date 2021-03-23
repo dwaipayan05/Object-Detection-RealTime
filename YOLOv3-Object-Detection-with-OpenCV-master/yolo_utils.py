@@ -22,7 +22,13 @@ def draw_labels_and_boxes(img, boxes, confidences, classids, idxs, colors, label
 
             # Draw the bounding box rectangle and label on the image
             cv.rectangle(img, (x, y), (x+w, y+h), color, 2)
-            text = "{}: {:4f}".format(labels[classids[i]], confidences[i])
+            if labels[classids[i]] == "person":
+                text = "Person Detected"
+            elif labels[classids[i]] == "cell phone":
+                text = "Cell Phone Detecteddd !!!!!!"
+            else:
+                text = "{}: {:4f}".format(labels[classids[i]], confidences[i])
+            
             cv.putText(img, text, (x, y-5), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
     return img
@@ -63,7 +69,7 @@ def generate_boxes_confidences_classids(outs, height, width, tconf):
 
 def infer_image(net, layer_names, height, width, img, colors, labels, FLAGS, 
             boxes=None, confidences=None, classids=None, idxs=None, infer=True):
-    
+    timex = 0   
     if infer:
         # Contructing a blob from the input image
         blob = cv.dnn.blobFromImage(img, 1 / 255.0, (416, 416), 
@@ -74,12 +80,14 @@ def infer_image(net, layer_names, height, width, img, colors, labels, FLAGS,
 
         # Getting the outputs from the output layers
         start = time.time()
-        outs = net.forward(layer_names)
+        outs = net.forward(layer_names) 
         end = time.time()
 
+        
         if FLAGS.show_time:
-            print ("[INFO] YOLOv3 took {:6f} seconds".format(end - start))
-
+            timex = end-start
+        
+        
         
         # Generate the boxes, confidences, and classIDs
         boxes, confidences, classids = generate_boxes_confidences_classids(outs, height, width, FLAGS.confidence)
@@ -90,7 +98,7 @@ def infer_image(net, layer_names, height, width, img, colors, labels, FLAGS,
     if boxes is None or confidences is None or idxs is None or classids is None:
         raise '[ERROR] Required variables are set to None before drawing boxes on images.'
         
-    # Draw labels and boxes on the image
+    # Draw la   bels and boxes on the image
     img = draw_labels_and_boxes(img, boxes, confidences, classids, idxs, colors, labels)
 
-    return img, boxes, confidences, classids, idxs
+    return img, boxes, confidences, classids, idxs, timex

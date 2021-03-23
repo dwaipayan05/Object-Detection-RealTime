@@ -4,6 +4,8 @@ import cv2 as cv
 import subprocess
 import time
 import os
+import imutils
+import pandas as pd
 from yolo_utils import infer_image, show_image
 
 FLAGS = []
@@ -152,22 +154,45 @@ if __name__ == '__main__':
 		count = 0
 
 		vid = cv.VideoCapture(0)
+		df = pd.DataFrame(columns = ['Object', 'Accuracy', 'Frame No', 'Yolo_Time', 'FPS'])
+
+		pre_time = 0
+		nxt_time = 0	
 		while True:
 			_, frame = vid.read()
 			height, width = frame.shape[:2]
+			nxt_time = time.time()
 
+			font = cv.FONT_HERSHEY_SIMPLEX
+			fps = 1/(nxt_time - pre_time)
+			pre_time = nxt_time
+
+			fps = int(fps)
+
+			fps = str(fps)
 			if count == 0:
-				frame, boxes, confidences, classids, idxs = infer_image(net, layer_names, \
+				frame, boxes, confidences, classids, idxs, timex = infer_image(net, layer_names, \
 		    						height, width, frame, colors, labels, FLAGS)
+				
 				count += 1
+				for i in range(len(confidences)):
+					print("Object : {} - Accuracy : {:4f} - Frame : {} - Yolo_Time = {}s - FPS = {}".format(
+						labels[classids[i]], confidences[i]*100, count, timex, fps))
+					df.loc[len(df.index)] = [labels[classids[i]], confidences[i], count, timex, fps]
 			else:
-				frame, boxes, confidences, classids, idxs = infer_image(net, layer_names, \
+				frame, boxes, confidences, classids, idxs, timex = infer_image(net, layer_names, \
 		    						height, width, frame, colors, labels, FLAGS, boxes, confidences, classids, idxs, infer=False)
 				count = (count + 1) % 6
-
+				for i in range(len(confidences)):
+					print("Object : {} - Accuracy : {:4f} - Frame : {} - Yolo_Time = {}s - FPS = {}".format(
+						labels[classids[i]], confidences[i]*100, count, timex, fps))
+					df.loc[len(df.index)] = [labels[classids[i]],
+                                            confidences[i], count, timex, fps]
+			cv.putText(frame, fps, (20, 75), font, 3, (100, 255, 0), 3, cv	.LINE_AA)
 			cv.imshow('webcam', frame)
 
 			if cv.waitKey(1) & 0xFF == ord('q'):
+				df.to_csv(r'logs.csv')
 				break
 		vid.release()
 		cv.destroyAllWindows()
